@@ -1,0 +1,6 @@
+indexes:
+- kind: foo
+  properties:
+  - name: FamilyName
+  - name: GivenName
+  - name: Email

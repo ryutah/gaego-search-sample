@@ -165,7 +165,7 @@ func createFooIndex(w http.ResponseWriter, r *http.Request) {
 	fooIdx := &fooIndex{
 		FamilyName: foo.FamilyName,
 		GivenName:  foo.GivenName,
-		Email:      foo.GivenName,
+		Email:      foo.Email,
 	}
 	// Datastoreと紐付けるために、Search APIのインデックスのIDでとして、DatastoreのエンティティのIDを指定している
 	if _, err := index.Put(ctx, strconv.FormatInt(id, 10), fooIdx); err != nil {

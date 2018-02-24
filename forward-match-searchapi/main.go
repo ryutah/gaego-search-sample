@@ -99,13 +99,11 @@ func putSampleDatas(w http.ResponseWriter, r *http.Request) {
 		foo{FamilyName: "鈴木", GivenName: "一郎", Email: "i-suzuki@sample.com"},
 		foo{FamilyName: "鈴木", GivenName: "次郎", Email: "j-tanaka@sample.com"},
 		foo{FamilyName: "山田", GivenName: "花子", Email: "h-yamada@sample.com"},
-		foo{FamilyName: "山田", GivenName: "花子", Email: "h-yamada@sample.com"},
 		foo{FamilyName: "テストユーザー", GivenName: "ほげ太郎", Email: "tanaka@sample.com"},
 		foo{FamilyName: "sample users", GivenName: "foo user", Email: "sample@sample.com"},
 	}
 
 	keys := []*datastore.Key{
-		datastore.NewIncompleteKey(ctx, "foo", nil),
 		datastore.NewIncompleteKey(ctx, "foo", nil),
 		datastore.NewIncompleteKey(ctx, "foo", nil),
 		datastore.NewIncompleteKey(ctx, "foo", nil),

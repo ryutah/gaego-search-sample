@@ -15,7 +15,7 @@ type foo struct {
 	FamilyName string   `datastore:",noindex"`
 	GivenName  string   `datastore:",noindex"`
 	Email      string   `datastore:",noindex"`
-	Search     []string `json:"-"`
+	Search     []string `json:"-"` // 検索インデックスとして使用するプロパティ
 }
 
 func (f *foo) createBiGram() []string {
@@ -35,6 +35,7 @@ func (f *foo) createBiGram() []string {
 }
 
 func (f *foo) Load(property []datastore.Property) error {
+	// Searchプロパティはデータ取得時の際には不要なため設定を省略
 	for _, p := range property {
 		switch p.Name {
 		case "FamilyName":
@@ -49,6 +50,7 @@ func (f *foo) Load(property []datastore.Property) error {
 }
 
 func (f *foo) Save() ([]datastore.Property, error) {
+	// Search プロパティ以外は検索で使用しないため、インデックスの作成を行わないようにしている
 	p := []datastore.Property{
 		datastore.Property{
 			Name:    "FamilyName",
@@ -66,6 +68,7 @@ func (f *foo) Save() ([]datastore.Property, error) {
 			NoIndex: true,
 		},
 	}
+	// BiGramでトークナイズされた文字列をSearchプロパティに設定していく
 	grams := f.createBiGram()
 	for _, g := range grams {
 		prop := datastore.Property{
@@ -90,10 +93,34 @@ func init() {
 func searchSampleDatas(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	query := r.FormValue("q")
-	filter := nGram(query, 2, "*")
+	// 検索ワードの取得
+	var (
+		query      = r.FormValue("q") // `q` パラメータは全文一致として扱う
+		familyName = r.FormValue("familyName")
+		givenName  = r.FormValue("givenName")
+		email      = r.FormValue("email")
+	)
+
+	// 各検索ワードをプレフィックス付きでトークナイズ
+	var (
+		allFilter    = nGram(query, 2, "*")
+		familyFilter = nGram(familyName, 2, "f")
+		givenFilter  = nGram(givenName, 2, "g")
+		emailFilter  = nGram(email, 2, "e")
+	)
+
+	// トークナイズされた検索条件をAND条件として追加していく
 	q := datastore.NewQuery("foo2")
-	for _, f := range filter {
+	for _, f := range allFilter {
+		q = q.Filter("Search=", f)
+	}
+	for _, f := range familyFilter {
+		q = q.Filter("Search=", f)
+	}
+	for _, f := range givenFilter {
+		q = q.Filter("Search=", f)
+	}
+	for _, f := range emailFilter {
 		q = q.Filter("Search=", f)
 	}
 
@@ -115,7 +142,8 @@ func putSampleDatas(w http.ResponseWriter, r *http.Request) {
 		foo{FamilyName: "田中", GivenName: "太郎", Email: "tanaka@sample.com"},
 		foo{FamilyName: "田所", GivenName: "三郎", Email: "tadokoro@sample.com"},
 		foo{FamilyName: "鈴木", GivenName: "一郎", Email: "i-suzuki@sample.com"},
-		foo{FamilyName: "鈴木", GivenName: "次郎", Email: "j-tanaka@sample.com"},
+		foo{FamilyName: "鈴木", GivenName: "次郎", Email: "j-suzuki@sample.com"},
+		foo{FamilyName: "一郎", GivenName: "鈴木", Email: "i-suzuki2@sample.com"},
 		foo{FamilyName: "山田", GivenName: "花子", Email: "h-yamada@sample.com"},
 		foo{FamilyName: "山田", GivenName: "太郎", Email: "t-yamada@sample.com"},
 		foo{FamilyName: "メロン", GivenName: "太郎", Email: "meron@sample.com"},
@@ -123,6 +151,7 @@ func putSampleDatas(w http.ResponseWriter, r *http.Request) {
 	}
 
 	keys := []*datastore.Key{
+		datastore.NewIncompleteKey(ctx, "foo2", nil),
 		datastore.NewIncompleteKey(ctx, "foo2", nil),
 		datastore.NewIncompleteKey(ctx, "foo2", nil),
 		datastore.NewIncompleteKey(ctx, "foo2", nil),
@@ -142,6 +171,10 @@ func putSampleDatas(w http.ResponseWriter, r *http.Request) {
 }
 
 func nGram(str string, n int, prefix ...string) []string {
+	if str == "" {
+		return []string{}
+	}
+
 	var (
 		newstr  = str
 		size    = 0

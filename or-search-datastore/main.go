@@ -56,6 +56,8 @@ func searchSampleDatas(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	q := datastore.NewQuery("foo")
+
+	// 検索パラメータが指定されていた場合は検索ワードをフィルタリング条件として並列で検索を行う
 	if familyName != "" {
 		wg.Add(1)
 		go func() {

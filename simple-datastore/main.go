@@ -35,7 +35,15 @@ func searchSampleDatas(w http.ResponseWriter, r *http.Request) {
 	)
 
 	q := datastore.NewQuery("foo")
+	// クエリパラメータに値が指定されている場合はフィルタ条件を追加する。
+	// FilterをつなげることでAND条件での検索が可能。
 	if familyName != "" {
+		// スペース区切りなどで複数指定できるようにし、同一プロパティに対してAND条件を指定することも可能
+		// ex)
+		//  filters := strings.Split(familyName, " ")
+		//  for _, filter := range filters {
+		//		q = q.Filter("FamilyName=", filter)
+	    //  }
 		q = q.Filter("FamilyName=", familyName)
 	}
 	if givenName != "" {
